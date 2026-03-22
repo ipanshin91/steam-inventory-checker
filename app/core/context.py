@@ -1,0 +1,18 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from app.core.config import AppConfig
+from app.core.database import JsonDatabase
+from app.core.filelock import FileLockManager
+from app.core.indexes import AccountIndex
+
+
+@dataclass
+class AppContext:
+    """Shared application state threaded through all async operations."""
+
+    config: AppConfig
+    db: JsonDatabase
+    index: AccountIndex
+    lock_manager: FileLockManager

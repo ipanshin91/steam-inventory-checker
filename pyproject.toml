@@ -1,0 +1,26 @@
+[project]
+name = "steam-inventory-checker"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "aiohttp>=3.9",
+    "pydantic>=2.6",
+    "prompt_toolkit>=3.0",
+    "rich>=13.0",
+    "filelock>=3.13",
+]
+
+[project.optional-dependencies]
+socks   = ["aiohttp-socks>=0.8"]
+speedup = ["uvloop>=0.19"]
+
+[project.scripts]
+steam-checker = "app.__main__:cli_entry"
+
+[build-system]
+requires      = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where   = ["."]
+include = ["app*"]

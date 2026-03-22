@@ -1,0 +1,32 @@
+[database]
+db_path  = "data/accounts.json"
+log_path = "data/app.log"
+
+[proxies]
+# Leave empty to use direct connection (slow, 1.5s delay per request).
+# Each proxy also uses a per-request delay to avoid IP bans.
+# Recommendation: add more proxies rather than reducing delays.
+list = [
+    # "http://user:pass@proxy1.example.com:8080",
+    # "socks5://proxy2.example.com:1080",
+]
+
+[performance]
+global_concurrency  = 20
+proxy_concurrency   = 5
+request_timeout     = 10.0
+retry_count         = 3
+backoff_base        = 1.0
+backoff_jitter      = 0.5
+proxy_request_delay = 1.0
+no_proxy_delay      = 1.5
+autosave_interval   = 100
+
+[thresholds]
+stale_threshold_hours = 48
+
+[features]
+pricing_enabled   = false
+debug_raw_mode    = false
+autosave          = true
+loop_acceleration = false
