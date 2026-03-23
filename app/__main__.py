@@ -6,10 +6,12 @@ import sys
 
 from rich.console import Console
 
+from app.cli.dispatcher import CommandDispatcher
+from app.cli.shell import run_shell
 from app.core.config import AppConfig, load_config
 from app.core.context import AppContext
 from app.core.database import JsonDatabase, SchemaMismatchError
-from app.core.filelock import FileLockManager, DatabaseLockError
+from app.core.filelock import DatabaseLockError, FileLockManager
 from app.core.indexes import AccountIndex
 from app.core.logger import setup_logging
 
@@ -17,8 +19,7 @@ console = Console()
 logger = logging.getLogger(__name__)
 
 
-async def run_app(ctx: AppContext) -> None:
-    """Main application coroutine. Replaced by full CLI in Stage 3."""
+def _print_banner(ctx: AppContext) -> None:
     console.print(
         f'[bold green]Steam Inventory Checker v0.1.0[/bold green]'
         f'  |  Python {sys.version.split()[0]}'
@@ -30,16 +31,14 @@ async def run_app(ctx: AppContext) -> None:
     if not ctx.config.proxies:
         console.print(
             f'[yellow][WARNING] No proxies configured. '
-            f'Using direct connection with {ctx.config.no_proxy_delay}s delay.[/yellow]'
+            f'Using direct connection with {ctx.config.no_proxy_delay}s delay per request.[/yellow]'
         )
     else:
         console.print(f'Proxies configured: [green]{len(ctx.config.proxies)}[/green]')
 
-    console.print('[dim]CLI not yet available — Stage 3 pending.[/dim]')
-
 
 async def async_main(config: AppConfig) -> None:
-    """Bootstrap resources, run the application, and guarantee clean shutdown."""
+    """Bootstrap resources, run the CLI shell, and guarantee clean shutdown."""
     lock_manager = FileLockManager(config.db_path)
 
     try:
@@ -61,10 +60,10 @@ async def async_main(config: AppConfig) -> None:
             lock_manager=lock_manager,
         )
 
-        try:
-            await run_app(ctx)
-        except KeyboardInterrupt:
-            pass
+        _print_banner(ctx)
+
+        dispatcher = CommandDispatcher(ctx, console)
+        await run_shell(dispatcher)
 
     except SchemaMismatchError as exc:
         console.print(f'[bold red]Schema Error:[/bold red] {exc}')
