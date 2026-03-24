@@ -14,6 +14,7 @@ from app.core.database import JsonDatabase, SchemaMismatchError
 from app.core.filelock import DatabaseLockError, FileLockManager
 from app.core.indexes import AccountIndex
 from app.core.logger import setup_logging
+from app.steam.client import SteamHttpClient
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -47,29 +48,35 @@ async def async_main(config: AppConfig) -> None:
         console.print(f'[bold red]Error:[/bold red] {exc}')
         return
 
-    db: JsonDatabase | None = None
+    http_client = SteamHttpClient(config)
+
     try:
         db = JsonDatabase.load(config.db_path)
-        index = AccountIndex()
-        index.rebuild(db.all_accounts())
-
-        ctx = AppContext(
-            config=config,
-            db=db,
-            index=index,
-            lock_manager=lock_manager,
-        )
-
-        _print_banner(ctx)
-
-        dispatcher = CommandDispatcher(ctx, console)
-        await run_shell(dispatcher)
-
     except SchemaMismatchError as exc:
         console.print(f'[bold red]Schema Error:[/bold red] {exc}')
+        await http_client.close()
+        lock_manager.release()
+        return
 
+    index = AccountIndex()
+    index.rebuild(db.all_accounts())
+
+    ctx = AppContext(
+        config=config,
+        db=db,
+        index=index,
+        lock_manager=lock_manager,
+        http_client=http_client,
+    )
+
+    _print_banner(ctx)
+
+    try:
+        dispatcher = CommandDispatcher(ctx, console)
+        await run_shell(dispatcher)
     finally:
-        if db is not None and config.autosave:
+        await http_client.close()
+        if config.autosave:
             console.print('[dim]Saving DB...[/dim]')
             db.save()
         lock_manager.release()
