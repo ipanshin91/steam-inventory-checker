@@ -19,7 +19,12 @@ class SteamHttpClient:
         self._session = aiohttp.ClientSession(
             connector=connector,
             timeout=aiohttp.ClientTimeout(total=config.request_timeout),
-            headers={'User-Agent': ua.random},
+            headers={
+                'User-Agent': ua.random,
+                'Referer': 'https://steamcommunity.com/',
+                'Accept': 'application/json, text/javascript, */*; q=0.01',
+                'Accept-Language': 'en-US,en;q=0.9',
+            },
         )
         logger.info(f'HTTP client session created (concurrency limit={config.global_concurrency})')
 

@@ -11,7 +11,7 @@ from app.steam.exceptions import RateLimitError, SourceError
 
 logger = logging.getLogger(__name__)
 
-_BASE_URL = 'https://steamcommunity.com/inventory/{steam_id64}/730/2?l=english&count=5000'
+_BASE_URL = 'https://steamcommunity.com/inventory/{steam_id64}/730/2?l=english&count=75'
 _PAGE_URL = _BASE_URL + '&start_assetid={start_assetid}'
 
 
@@ -42,13 +42,17 @@ class InventoryFetcher:
                 if start_assetid
                 else _BASE_URL.format(steam_id64=steam_id64)
             )
-            logger.debug(f'Fetching inventory page: {url}')
+            logger.debug('Fetching inventory page: %s', url)
 
             try:
                 data = await self._client.get_json(url, proxy=proxy)
             except aiohttp.ClientResponseError as exc:
-                if exc.status == 403:
-                    logger.debug(f'Inventory private for {steam_id64} (HTTP 403)')
+                if exc.status in (400, 403):
+                    logger.debug(
+                        'Inventory unavailable for %s (HTTP %d — private or CS2 not owned)',
+                        steam_id64,
+                        exc.status,
+                    )
                     return InventoryData(visibility=InventoryVisibilityStatus.private)
                 if exc.status == 429:
                     raise RateLimitError(
@@ -59,7 +63,10 @@ class InventoryFetcher:
                 ) from exc
 
             if not data.get('success', 0):
-                raise SourceError(f'Steam returned success=0 for inventory of {steam_id64}')
+                logger.debug(
+                    'Inventory success=0 for %s (private or CS2 not owned)', steam_id64
+                )
+                return InventoryData(visibility=InventoryVisibilityStatus.private)
 
             all_assets.extend(data.get('assets', []))
 
@@ -68,13 +75,15 @@ class InventoryFetcher:
 
             if data.get('more_items'):
                 start_assetid = data.get('last_assetid')
-                logger.debug(f'Inventory has more pages, next start_assetid={start_assetid}')
+                logger.debug('Inventory has more pages, next start_assetid=%s', start_assetid)
             else:
                 break
 
         logger.debug(
-            f'Inventory fetched for {steam_id64}: '
-            f'{len(all_assets)} assets, {len(desc_map)} description types'
+            'Inventory fetched for %s: %d assets, %d description types',
+            steam_id64,
+            len(all_assets),
+            len(desc_map),
         )
         return InventoryData(
             visibility=InventoryVisibilityStatus.public,
