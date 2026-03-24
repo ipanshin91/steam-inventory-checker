@@ -14,6 +14,8 @@ from app.core.database import JsonDatabase, SchemaMismatchError
 from app.core.filelock import DatabaseLockError, FileLockManager
 from app.core.indexes import AccountIndex
 from app.core.logger import setup_logging
+from app.proxy.health import ProxyHealthChecker
+from app.proxy.manager import ProxyManager
 from app.steam.client import SteamHttpClient
 
 console = Console()
@@ -29,13 +31,15 @@ def _print_banner(ctx: AppContext) -> None:
         f'DB: [cyan]{ctx.config.db_path}[/cyan]'
         f'  |  Accounts: [yellow]{ctx.index.total_count}[/yellow]'
     )
-    if not ctx.config.proxies:
+    if ctx.proxy_manager.is_direct_mode:
         console.print(
             f'[yellow][WARNING] No proxies configured. '
             f'Using direct connection with {ctx.config.no_proxy_delay}s delay per request.[/yellow]'
         )
     else:
-        console.print(f'Proxies configured: [green]{len(ctx.config.proxies)}[/green]')
+        console.print(
+            f'Proxies configured: [green]{len(ctx.config.proxies)}[/green]'
+        )
 
 
 async def async_main(config: AppConfig) -> None:
@@ -49,11 +53,16 @@ async def async_main(config: AppConfig) -> None:
         return
 
     http_client = SteamHttpClient(config)
+    proxy_manager = ProxyManager(config)
+    health_checker = ProxyHealthChecker(proxy_manager, http_client)
+    health_task = health_checker.start()
 
     try:
         db = JsonDatabase.load(config.db_path)
     except SchemaMismatchError as exc:
         console.print(f'[bold red]Schema Error:[/bold red] {exc}')
+        health_task.cancel()
+        await asyncio.gather(health_task, return_exceptions=True)
         await http_client.close()
         lock_manager.release()
         return
@@ -67,6 +76,7 @@ async def async_main(config: AppConfig) -> None:
         index=index,
         lock_manager=lock_manager,
         http_client=http_client,
+        proxy_manager=proxy_manager,
     )
 
     _print_banner(ctx)
@@ -75,6 +85,8 @@ async def async_main(config: AppConfig) -> None:
         dispatcher = CommandDispatcher(ctx, console)
         await run_shell(dispatcher)
     finally:
+        health_task.cancel()
+        await asyncio.gather(health_task, return_exceptions=True)
         await http_client.close()
         if config.autosave:
             console.print('[dim]Saving DB...[/dim]')

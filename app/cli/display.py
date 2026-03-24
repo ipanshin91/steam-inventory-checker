@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
 from app.core.indexes import AccountIndex
 from app.core.models import Account, Item
+
+if TYPE_CHECKING:
+    from app.proxy.manager import ProxyManager
 
 
 def print_accounts_table(console: Console, accounts: list[Account]) -> None:
@@ -101,32 +106,69 @@ def print_find_results(console: Console, results: list[tuple[Account, Item]]) ->
     console.print(f'  [dim]Found {len(results)} item(s) in {unique_accounts} account(s).[/dim]')
 
 
-def print_stats(console: Console, index: AccountIndex, schema_version: str) -> None:
-    """Render database statistics as a rich table."""
-    table = Table(show_header=False, box=None, padding=(0, 2))
-    table.add_column('Key', style='dim')
-    table.add_column('Value')
+def print_stats(
+    console: Console,
+    index: AccountIndex,
+    schema_version: str,
+    proxy_manager: ProxyManager | None = None,
+) -> None:
+    """Render database and proxy statistics."""
+    db_table = Table(show_header=False, box=None, padding=(0, 2))
+    db_table.add_column('Key', style='dim')
+    db_table.add_column('Value')
 
-    table.add_row('total', str(index.total_count))
-    table.add_row('schema', schema_version)
-    table.add_row('', '')
-    table.add_row('exists', str(index.exists_count))
-    table.add_row('not_found', str(index.not_found_count))
-    table.add_row('unknown (exists)', str(index.unknown_exists_count))
-    table.add_row('', '')
-    table.add_row('vac_banned', str(index.vac_banned_count))
-    table.add_row('not_banned', str(index.not_banned_count))
-    table.add_row('unknown (ban)', str(index.unknown_ban_count))
-    table.add_row('', '')
-    table.add_row('public', str(index.public_count))
-    table.add_row('private', str(index.private_count))
-    table.add_row('unknown (inv)', str(index.unknown_inventory_count))
-    table.add_row('empty public', str(index.empty_public_count))
-    table.add_row('', '')
-    table.add_row('sync success', str(index.success_count))
-    table.add_row('sync partial', str(index.partial_success_count))
-    table.add_row('sync failed', str(index.failed_count))
-    table.add_row('never synced', str(index.never_synced_count))
+    db_table.add_row('total', str(index.total_count))
+    db_table.add_row('schema', schema_version)
+    db_table.add_row('', '')
+    db_table.add_row('exists', str(index.exists_count))
+    db_table.add_row('not_found', str(index.not_found_count))
+    db_table.add_row('unknown (exists)', str(index.unknown_exists_count))
+    db_table.add_row('', '')
+    db_table.add_row('vac_banned', str(index.vac_banned_count))
+    db_table.add_row('not_banned', str(index.not_banned_count))
+    db_table.add_row('unknown (ban)', str(index.unknown_ban_count))
+    db_table.add_row('', '')
+    db_table.add_row('public', str(index.public_count))
+    db_table.add_row('private', str(index.private_count))
+    db_table.add_row('unknown (inv)', str(index.unknown_inventory_count))
+    db_table.add_row('empty public', str(index.empty_public_count))
+    db_table.add_row('', '')
+    db_table.add_row('sync success', str(index.success_count))
+    db_table.add_row('sync partial', str(index.partial_success_count))
+    db_table.add_row('sync failed', str(index.failed_count))
+    db_table.add_row('never synced', str(index.never_synced_count))
 
-    console.print(Panel(table, title='Database', border_style='cyan'))
-    console.print('[dim]Proxy stats — available after Stage 5.[/dim]')
+    console.print(Panel(db_table, title='Database', border_style='cyan'))
+
+    if proxy_manager is None or proxy_manager.is_direct_mode:
+        console.print('[dim]Proxies: direct connection (no pool configured)[/dim]')
+        return
+
+    summary = proxy_manager.proxy_summary()
+    px_table = Table(show_header=True, header_style='bold', box=None)
+    px_table.add_column('Proxy', style='cyan', no_wrap=True)
+    px_table.add_column('Alive')
+    px_table.add_column('Circuit')
+    px_table.add_column('OK', justify='right')
+    px_table.add_column('Fail', justify='right')
+    px_table.add_column('Avg ms', justify='right')
+    px_table.add_column('Active', justify='right')
+
+    for row in summary:
+        alive_str = '[green]yes[/green]' if row['alive'] else '[red]no[/red]'
+        circuit_str = row['circuit']
+        if circuit_str == 'open':
+            circuit_str = f'[red]{circuit_str}[/red]'
+        elif circuit_str == 'half_open':
+            circuit_str = f'[yellow]{circuit_str}[/yellow]'
+        px_table.add_row(
+            row['url'],
+            alive_str,
+            circuit_str,
+            str(row['ok']),
+            str(row['fail']),
+            str(row['avg_ms']),
+            str(row['active']),
+        )
+
+    console.print(Panel(px_table, title=f'Proxies ({len(summary)})', border_style='cyan'))

@@ -40,7 +40,7 @@ _HELP_TEXT = """\
 
 async def cmd_stats(ctx: AppContext, console: Console, args: list[str]) -> None:
     """Display database and proxy statistics."""
-    print_stats(console, ctx.index, ctx.db.db.schema_version)
+    print_stats(console, ctx.index, ctx.db.db.schema_version, ctx.proxy_manager)
 
 
 async def cmd_help(ctx: AppContext, console: Console, args: list[str]) -> None:

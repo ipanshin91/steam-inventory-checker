@@ -9,6 +9,7 @@ from app.core.filelock import FileLockManager
 from app.core.indexes import AccountIndex
 
 if TYPE_CHECKING:
+    from app.proxy.manager import ProxyManager
     from app.steam.client import SteamHttpClient
 
 
@@ -21,3 +22,4 @@ class AppContext:
     index: AccountIndex
     lock_manager: FileLockManager
     http_client: SteamHttpClient
+    proxy_manager: ProxyManager
