@@ -31,12 +31,12 @@ class JsonDatabase:
     def load(path: Path) -> JsonDatabase:
         """Load database from path, creating a new one if the file does not exist."""
         if not path.exists():
-            logger.info(f'DB file not found, creating new database: {path}')
+            logger.info('DB file not found, creating new database: %s', path)
             instance = JsonDatabase(Database(), path)
             instance.save()
             return instance
 
-        logger.info(f'Loading database from {path}')
+        logger.info('Loading database from %s', path)
         data = json.loads(path.read_text(encoding='utf-8'))
         file_version = data.get('schema_version', 'unknown')
 
@@ -50,7 +50,7 @@ class JsonDatabase:
             )
 
         db = Database.model_validate(data)
-        logger.info(f'Loaded {len(db.accounts)} accounts from database')
+        logger.info('Loaded %d accounts from database', len(db.accounts))
         return JsonDatabase(db, path)
 
     def save(self) -> None:
@@ -64,13 +64,13 @@ class JsonDatabase:
         )
         tmp.write_text(json_data, encoding='utf-8')
         os.replace(tmp, self._path)
-        logger.info(f'Database saved to {self._path}')
+        logger.info('Database saved to %s', self._path)
 
     def add_account(self, vanity: str) -> Account:
         """Create and persist a new account entry with never_synced status."""
         account = Account(vanity_name=vanity)
         self._db.accounts[vanity] = account
-        logger.info(f'Account added: {vanity}')
+        logger.info('Account added: %s', vanity)
         return account
 
     def update_account(self, account: Account) -> None:

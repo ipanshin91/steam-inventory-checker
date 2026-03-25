@@ -103,4 +103,4 @@ class AccountIndex:
                 case _:
                     self.never_synced_count += 1
 
-        logger.debug(f'Index rebuilt: {self.total_count} accounts')
+        logger.debug('Index rebuilt: %d accounts', self.total_count)

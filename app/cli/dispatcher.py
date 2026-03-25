@@ -77,5 +77,5 @@ class CommandDispatcher:
         try:
             await handler(args)
         except Exception as exc:
-            logger.exception(f'Unhandled error in command {cmd!r}')
+            logger.exception('Unhandled error in command %r', cmd)
             self._console.print(f'[bold red]Error:[/bold red] {exc}')

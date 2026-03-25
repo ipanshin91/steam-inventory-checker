@@ -152,7 +152,8 @@ class AccountSyncWorker:
             acc.sync_error_category = error_category
             error_message = _format_exc(exc)
             logger.warning(
-                f'Sync error for {acc.vanity_name}: {type(exc).__name__} ({error_category.value}) — {error_message}'
+                'Sync error for %s: %s (%s) — %s',
+                acc.vanity_name, type(exc).__name__, error_category.value, error_message,
             )
             self._proxy_manager.release(entry, success=False, latency_ms=_elapsed_ms(start))
             return SyncResult(

@@ -31,5 +31,5 @@ async def cmd_reload(ctx: AppContext, console: Console, args: list[str]) -> None
     ctx.db = new_db
     ctx.index = AccountIndex()
     ctx.index.rebuild(ctx.db.all_accounts())
-    logger.info(f'Database reloaded: {ctx.index.total_count} accounts')
+    logger.info('Database reloaded: %d accounts', ctx.index.total_count)
     console.print(f'[green]Reloaded.[/green]  Accounts: [yellow]{ctx.index.total_count}[/yellow]')

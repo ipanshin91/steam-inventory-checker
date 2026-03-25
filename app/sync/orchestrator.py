@@ -112,7 +112,7 @@ def _build_summary(
             errors[SyncErrorCategory.internal_error] = (
                 errors.get(SyncErrorCategory.internal_error, 0) + 1
             )
-            logger.error(f'Unhandled exception in sync task: {type(r).__name__}')
+            logger.error('Unhandled exception in sync task: %s', type(r).__name__)
             continue
         if r.status == SyncStatus.success:
             success += 1

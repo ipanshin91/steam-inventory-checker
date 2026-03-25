@@ -53,8 +53,8 @@ class ProxyHealthChecker:
         try:
             await self._client.get_text(_HEALTH_CHECK_URL, proxy=proxy.url)
             if not proxy.is_alive:
-                logger.info(f'Proxy {proxy.url} is back online')
+                logger.info('Proxy %s is back online', proxy.url)
             proxy.is_alive = True
         except Exception:
             proxy.is_alive = False
-            logger.warning(f'Proxy {proxy.url} is unreachable')
+            logger.warning('Proxy %s is unreachable', proxy.url)

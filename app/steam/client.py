@@ -26,7 +26,7 @@ class SteamHttpClient:
                 'Accept-Language': 'en-US,en;q=0.9',
             },
         )
-        logger.info(f'HTTP client session created (concurrency limit={config.global_concurrency})')
+        logger.info('HTTP client session created (concurrency limit=%d)', config.global_concurrency)
 
     async def get_text(self, url: str, proxy: str | None = None) -> str:
         """Fetch URL and return response body as UTF-8 text."""

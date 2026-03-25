@@ -23,7 +23,7 @@ class FileLockManager:
         """Acquire the exclusive database lock. Raises DatabaseLockError on timeout."""
         try:
             self._lock.acquire()
-            logger.info(f'Database lock acquired: {self._lock_path}')
+            logger.info('Database lock acquired: %s', self._lock_path)
         except Timeout:
             raise DatabaseLockError(
                 f'Cannot acquire database lock: {self._lock_path}\n'
@@ -33,7 +33,7 @@ class FileLockManager:
     def release(self) -> None:
         """Release the database lock."""
         self._lock.release()
-        logger.info(f'Database lock released: {self._lock_path}')
+        logger.info('Database lock released: %s', self._lock_path)
 
     def __enter__(self) -> FileLockManager:
         self.acquire()

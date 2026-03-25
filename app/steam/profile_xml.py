@@ -36,7 +36,7 @@ class ProfileXmlFetcher:
     async def fetch(self, vanity: str, proxy: str | None = None) -> ProfileData:
         """Fetch profile data for the given vanity name."""
         url = _PROFILE_URL.format(vanity=vanity)
-        logger.debug(f'Fetching profile XML: {url}')
+        logger.debug('Fetching profile XML: %s', url)
         xml_text = await self._client.get_text(url, proxy=proxy)
         return _parse(xml_text, vanity)
 
@@ -48,7 +48,7 @@ def _parse(xml_text: str, vanity: str) -> ProfileData:
         raise ParseError(f'Malformed profile XML for {vanity}') from exc
 
     if root.find('error') is not None:
-        logger.debug(f'Profile not found: {vanity}')
+        logger.debug('Profile not found: %s', vanity)
         return ProfileData(
             vanity_name=vanity,
             exists_status=AccountExistsStatus.not_found,
@@ -60,7 +60,8 @@ def _parse(xml_text: str, vanity: str) -> ProfileData:
     vac_banned = root.findtext('vacBanned', '0') == '1'
 
     logger.debug(
-        f'Profile fetched: vanity={vanity} id64={steam_id64} privacy={privacy} vac={vac_banned}'
+        'Profile fetched: vanity=%s id64=%s privacy=%s vac=%s',
+        vanity, steam_id64, privacy, vac_banned,
     )
 
     return ProfileData(

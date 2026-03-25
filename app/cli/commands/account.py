@@ -89,7 +89,10 @@ async def cmd_import(ctx: AppContext, console: Console, args: list[str]) -> None
         added += 1
 
     ctx.index.rebuild(ctx.db.all_accounts())
-    logger.info(f'Import: {added} added, {already_in_db} already in DB, {invalid} invalid')
+    logger.info(
+        'Import: %d added, %d already in DB, %d invalid', 
+        added, already_in_db, invalid,
+    )
     console.print(
         f'Tokens: [cyan]{len(tokens)}[/cyan]'
         f'  |  Invalid: [red]{invalid}[/red]'
