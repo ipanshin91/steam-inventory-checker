@@ -113,7 +113,7 @@ def _print_one_result(console: Console, result: SyncResult) -> None:
 
     line = (
         f'{icon}  [cyan]{result.vanity_name}[/cyan]'
-        f'  {result.duration_ms}ms'
+        f'  {_fmt_duration(result.duration_ms)}'
         f'  items: {result.items_fetched}'
     )
     if result.error_category != SyncErrorCategory.none:
@@ -130,7 +130,7 @@ def _print_summary(console: Console, summary: SyncSummary) -> None:
         f'   success: [green]{summary.success}[/green]'
         f'   partial: [yellow]{summary.partial_success}[/yellow]'
         f'   failed: [red]{summary.failed}[/red]',
-        f'duration: {summary.duration_ms}ms',
+        f'duration: {_fmt_duration(summary.duration_ms)}',
     ]
     if summary.errors_by_category:
         err_parts = [f'{k.value}={v}' for k, v in summary.errors_by_category.items()]
@@ -142,3 +142,15 @@ def _print_summary(console: Console, summary: SyncSummary) -> None:
     if summary.failed_results:
         for r in summary.failed_results:
             _print_one_result(console, r)
+
+
+def _fmt_duration(ms: int) -> str:
+    """Format milliseconds as a human-readable duration string."""
+    total_s = ms // 1000
+    minutes = total_s // 60
+    seconds = total_s % 60
+    if minutes > 0:
+        return f'{minutes}m {seconds}s'
+    if total_s > 0:
+        return f'{seconds}s'
+    return f'{ms}ms'
