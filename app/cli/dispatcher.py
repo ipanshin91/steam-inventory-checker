@@ -41,6 +41,9 @@ class CommandDispatcher:
             'reload': lambda a: cmd_reload(ctx, console, a),
             'stats':  lambda a: cmd_stats(ctx, console, a),
             'help':   lambda a: cmd_help(ctx, console, a),
+            'h':      lambda a: cmd_help(ctx, console, a),
+            '?':      lambda a: cmd_help(ctx, console, a),
+            'ls':     lambda a: cmd_list(ctx, console, a),
             'exit':   lambda a: cmd_exit(ctx, console, a, stop),
             'quit':   lambda a: cmd_exit(ctx, console, a, stop),
         }

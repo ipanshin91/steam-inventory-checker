@@ -3,7 +3,7 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class AppConfig(BaseModel):
@@ -14,8 +14,15 @@ class AppConfig(BaseModel):
 
     proxies: list[str] = Field(default_factory=list)
 
-    global_concurrency: int = 20
-    proxy_concurrency: int = 5
+    global_concurrency: int = 0
+    proxy_concurrency: int = 1
+
+    @model_validator(mode='after')
+    def _auto_global_concurrency(self) -> 'AppConfig':
+        """Set global_concurrency to proxy count (min 1) when not explicitly configured."""
+        if self.global_concurrency <= 0:
+            self.global_concurrency = max(1, len(self.proxies))
+        return self
     request_timeout: float = 10.0
     retry_count: int = 3
     backoff_base: float = 1.0
@@ -56,8 +63,8 @@ def load_config(path: Path | None = None) -> AppConfig:
 
         proxies=prx_sec.get('list', []),
 
-        global_concurrency=perf_sec.get('global_concurrency', 20),
-        proxy_concurrency=perf_sec.get('proxy_concurrency', 5),
+        global_concurrency=perf_sec.get('global_concurrency', 0),
+        proxy_concurrency=perf_sec.get('proxy_concurrency', 1),
         request_timeout=perf_sec.get('request_timeout', 10.0),
         retry_count=perf_sec.get('retry_count', 3),
         backoff_base=perf_sec.get('backoff_base', 1.0),

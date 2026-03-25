@@ -87,6 +87,11 @@ class ProxyManager:
                 if p.is_alive and p.circuit.state == CircuitState.CLOSED
             ]
             if not candidates:
+                candidates = [
+                    p for p in self._pool
+                    if p.is_alive and p.circuit.state == CircuitState.HALF_OPEN
+                ]
+            if not candidates:
                 raise NoHealthyProxyError('No healthy proxies available in the pool')
             proxy = min(candidates, key=lambda p: p.active_connections)
             proxy.active_connections += 1

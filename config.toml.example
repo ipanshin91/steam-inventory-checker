@@ -12,8 +12,7 @@ list = [
 ]
 
 [performance]
-global_concurrency  = 20
-proxy_concurrency   = 5
+proxy_concurrency   = 1
 request_timeout     = 10.0
 retry_count         = 3
 backoff_base        = 1.0

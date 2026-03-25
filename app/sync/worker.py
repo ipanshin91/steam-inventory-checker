@@ -106,6 +106,7 @@ class AccountSyncWorker:
                 )
 
             steam_id64 = profile.steam_id64
+            await asyncio.sleep(entry.delay)
             inv = await with_retry(
                 lambda: self._inventory_fetcher.fetch(steam_id64, proxy_url),
                 retries=self._config.retry_count,

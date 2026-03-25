@@ -55,6 +55,7 @@ class ProxyHealthChecker:
             if not proxy.is_alive:
                 logger.info('Proxy %s is back online', proxy.url)
             proxy.is_alive = True
+            proxy.circuit.record_success()
         except Exception:
             proxy.is_alive = False
             logger.warning('Proxy %s is unreachable', proxy.url)
