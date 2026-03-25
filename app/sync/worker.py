@@ -9,6 +9,7 @@ import aiohttp
 
 from app.core.config import AppConfig
 from app.core.models import Account, InventoryVisibilityStatus, SyncErrorCategory, SyncStatus
+from app.pricing.fetcher import PriceFetcher
 from app.proxy.manager import MaxRetriesExceeded, NoHealthyProxyError, ProxyManager, with_retry
 from app.steam.client import SteamHttpClient
 from app.steam.exceptions import ParseError, RateLimitError, SourceError
@@ -29,10 +30,12 @@ class AccountSyncWorker:
         client: SteamHttpClient,
         proxy_manager: ProxyManager,
         config: AppConfig,
+        price_fetcher: PriceFetcher | None = None,
     ) -> None:
         self._account = account
         self._proxy_manager = proxy_manager
         self._config = config
+        self._price_fetcher = price_fetcher
         self._profile_fetcher = ProfileXmlFetcher(client)
         self._inventory_fetcher = InventoryFetcher(client)
 
@@ -113,18 +116,22 @@ class AccountSyncWorker:
             acc.inventory_visibility_status = inv.visibility
             if inv.visibility == InventoryVisibilityStatus.public:
                 items = normalize(inv)
+                if self._price_fetcher is not None and items:
+                    await self._price_fetcher.enrich_items(items, proxy_url)
                 total, distinct, marketable, tradable = count_items(items)
                 acc.items = items
                 acc.items_count_total = total
                 acc.items_count_distinct = distinct
                 acc.marketable_items_count = marketable
                 acc.tradable_items_count = tradable
+                acc.total_inventory_value = _sum_value(items)
             else:
                 acc.items = []
                 acc.items_count_total = 0
                 acc.items_count_distinct = 0
                 acc.marketable_items_count = 0
                 acc.tradable_items_count = 0
+                acc.total_inventory_value = None
 
             acc.sync_status = SyncStatus.success
             acc.sync_error_category = SyncErrorCategory.none
@@ -160,6 +167,16 @@ class AccountSyncWorker:
 
 def _elapsed_ms(start: float) -> int:
     return int((time.monotonic() - start) * 1000)
+
+
+def _sum_value(items: list) -> float | None:
+    """Return total inventory value or None if no prices are available."""
+    total = sum(
+        item.price * item.quantity
+        for item in items
+        if item.price is not None
+    )
+    return round(total, 2) if any(item.price is not None for item in items) else None
 
 
 def _format_exc(exc: Exception) -> str:

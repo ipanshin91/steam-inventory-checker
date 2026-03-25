@@ -27,6 +27,7 @@ class AppConfig(BaseModel):
     stale_threshold_hours: int = 48
 
     pricing_enabled: bool = False
+    pricing_currency: int = 1
     debug_raw_mode: bool = False
     autosave: bool = True
     loop_acceleration: bool = False
@@ -68,6 +69,7 @@ def load_config(path: Path | None = None) -> AppConfig:
         stale_threshold_hours=thr_sec.get('stale_threshold_hours', 48),
 
         pricing_enabled=feat_sec.get('pricing_enabled', False),
+        pricing_currency=feat_sec.get('pricing_currency', 1),
         debug_raw_mode=feat_sec.get('debug_raw_mode', False),
         autosave=feat_sec.get('autosave', True),
         loop_acceleration=feat_sec.get('loop_acceleration', False),

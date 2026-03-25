@@ -27,6 +27,9 @@ stale_threshold_hours = 48
 
 [features]
 pricing_enabled   = false
+# Currency for Steam Market prices (1=USD 3=EUR 5=RUB 17=TRY 18=UAH 40=KZT).
+# Only used when pricing_enabled = true.
+pricing_currency  = 1
 debug_raw_mode    = false
 autosave          = true
 loop_acceleration = false

@@ -7,6 +7,7 @@ from collections.abc import Callable
 from app.core.config import AppConfig
 from app.core.database import JsonDatabase
 from app.core.models import Account
+from app.pricing.fetcher import PriceFetcher
 from app.proxy.manager import ProxyManager
 from app.steam.client import SteamHttpClient
 from app.sync.result import SyncResult
@@ -35,6 +36,9 @@ class AsyncTaskQueue:
         self._on_progress = on_progress
         self._completed = 0
         self._lock = asyncio.Lock()
+        self._price_fetcher: PriceFetcher | None = (
+            PriceFetcher(client, config) if config.pricing_enabled else None
+        )
 
     async def run(self, accounts: list[Account]) -> list[SyncResult | BaseException]:
         """Deduplicate accounts and run all sync tasks, returning results in completion order."""
@@ -55,6 +59,7 @@ class AsyncTaskQueue:
                 client=self._client,
                 proxy_manager=self._proxy_manager,
                 config=self._config,
+                price_fetcher=self._price_fetcher,
             )
             result = await worker.run()
             self._db.update_account(result.updated_account)
@@ -63,7 +68,7 @@ class AsyncTaskQueue:
                 self._completed += 1
                 if self._completed % self._config.autosave_interval == 0:
                     self._db.save()
-                    logger.info(f'Autosave after {self._completed} accounts synced')
+                    logger.info('Autosave after %d accounts synced', self._completed)
 
             if self._on_progress is not None:
                 self._on_progress()

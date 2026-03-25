@@ -61,6 +61,10 @@ class Item(BaseModel):
     tags: list[dict[str, str]] = Field(default_factory=list)
     icon_url: str | None = None
 
+    price: float | None = None
+    price_updated_at: datetime | None = None
+    currency: str | None = None
+
 
 class Account(BaseModel):
     """Steam account with profile data and CS2 inventory state."""
@@ -87,6 +91,7 @@ class Account(BaseModel):
     items_count_distinct: int = 0
     marketable_items_count: int = 0
     tradable_items_count: int = 0
+    total_inventory_value: float | None = None
 
     items: list[Item] = Field(default_factory=list)
 
