@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from rich.console import Console
+from rich.console import Console, Group
 from rich.panel import Panel
 from rich.table import Table
 
@@ -53,51 +53,60 @@ def print_accounts_table(console: Console, accounts: list[Account]) -> None:
 
 
 def print_account_card(console: Console, account: Account) -> None:
-    """Render a detailed account card."""
+    """Render a compact account summary and items table."""
     last_sync = (
         account.last_successful_sync_at.strftime('%Y-%m-%d %H:%M')
-        if account.last_successful_sync_at else 'never'
-    )
-    last_attempt = (
-        account.last_sync_attempt_at.strftime('%Y-%m-%d %H:%M')
-        if account.last_sync_attempt_at else 'never'
+        if account.last_successful_sync_at else '—'
     )
 
-    items_line = (
-        f'items: {account.items_count_total} total'
-        f'  |  {account.marketable_items_count} marketable'
-    )
+    summary_table = Table(show_header=True, header_style='bold', box=None)
+    summary_table.add_column('Vanity', style='cyan', no_wrap=True)
+    summary_table.add_column('Steam ID64')
+    summary_table.add_column('Exists')
+    summary_table.add_column('Ban')
+    summary_table.add_column('Inventory')
+    summary_table.add_column('Items', justify='right')
+    summary_table.add_column('Value', justify='right')
+    summary_table.add_column('Sync')
+    summary_table.add_column('Last Sync')
+
+    value_str = '—'
+    currency = next((item.currency for item in account.items if item.currency), '')
     if account.total_inventory_value is not None:
-        currency = next(
-            (item.currency for item in account.items if item.currency), ''
-        )
-        items_line += f'  |  value: [yellow]{account.total_inventory_value:.2f} {currency}[/yellow]'
+        value_str = f'[yellow]{account.total_inventory_value:.2f} {currency}[/yellow]'.rstrip()
 
-    lines = [
-        f'[bold cyan]{account.vanity_name}[/bold cyan]'
-        + (f'  |  [dim]{account.steam_id64}[/dim]' if account.steam_id64 else ''),
-        f'exists: {account.account_exists_status.value}'
-        f'  |  ban: {account.account_ban_status.value}'
-        f'  |  inventory: {account.inventory_visibility_status.value}',
-        items_line,
-        f'sync: {account.sync_status.value}'
-        f'  |  last success: {last_sync}'
-        f'  |  last attempt: {last_attempt}',
-    ]
-
+    summary_table.add_row(
+        account.vanity_name,
+        account.steam_id64 or '—',
+        account.account_exists_status.value,
+        account.account_ban_status.value,
+        account.inventory_visibility_status.value,
+        str(account.items_count_total),
+        value_str,
+        account.sync_status.value,
+        last_sync,
+    )
+    account_content = [summary_table]
     if account.sync_error_category.value != 'none':
-        lines.append(f'error: [red]{account.sync_error_category.value}[/red]')
+        account_content.append(f'[red]Error:[/red] {account.sync_error_category.value}')
+    console.print(Panel(Group(*account_content), title='Account', border_style='dim'))
 
-    if account.items:
-        lines.append('')
-        lines.append('[bold]Items:[/bold]')
-        for item in account.items:
-            price_str = ''
-            if item.price is not None:
-                price_str = f'  [yellow]{item.price:.2f} {item.currency or ""}[/yellow]'
-            lines.append(f'  {item.display_name}  x{item.quantity}{price_str}')
+    items_table = Table(show_header=True, header_style='bold', box=None)
+    items_table.add_column('Item')
+    items_table.add_column('Qty', justify='right')
+    items_table.add_column('Price', justify='right')
+    if not account.items:
+        console.print(Panel('[dim]No items[/dim]', title='Items', border_style='dim'))
+        return
 
-    console.print(Panel('\n'.join(lines), title='Account', border_style='dim'))
+    for item in account.items:
+        if item.price is None:
+            price_str = '—'
+        else:
+            price_str = f'[yellow]{item.price:.2f} {item.currency or ""}[/yellow]'.rstrip()
+        items_table.add_row(item.display_name, str(item.quantity), price_str)
+
+    console.print(Panel(items_table, title='Items', border_style='dim'))
 
 
 def print_find_results(console: Console, results: list[tuple[Account, Item]]) -> None:
