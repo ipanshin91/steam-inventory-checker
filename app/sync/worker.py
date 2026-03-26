@@ -135,23 +135,20 @@ class AccountSyncWorker:
                             existing_prices[item.market_hash_name]
                         )
 
-                marketable_items = [i for i in items if i.marketable]
-                prices_fetched = sum(1 for i in marketable_items if i.price is not None)
-                prices_failed = len(marketable_items) - prices_fetched
+                prices_fetched = sum(1 for i in items if i.price is not None)
+                prices_failed = len(items) - prices_fetched
 
-                total, distinct, marketable, tradable = count_items(items)
+                total, distinct, marketable = count_items(items)
                 acc.items = items
                 acc.items_count_total = total
                 acc.items_count_distinct = distinct
                 acc.marketable_items_count = marketable
-                acc.tradable_items_count = tradable
                 acc.total_inventory_value = _sum_value(items)
             else:
                 acc.items = []
                 acc.items_count_total = 0
                 acc.items_count_distinct = 0
                 acc.marketable_items_count = 0
-                acc.tradable_items_count = 0
                 acc.total_inventory_value = None
 
             acc.sync_status = SyncStatus.success

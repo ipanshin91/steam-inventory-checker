@@ -54,7 +54,6 @@ class Item(BaseModel):
     display_name: str
     market_hash_name: str
     quantity: int = 1
-    tradable: bool = False
     marketable: bool = False
     commodity: bool = False
     type: str | None = None
@@ -90,7 +89,6 @@ class Account(BaseModel):
     items_count_total: int = 0
     items_count_distinct: int = 0
     marketable_items_count: int = 0
-    tradable_items_count: int = 0
     total_inventory_value: float | None = None
 
     items: list[Item] = Field(default_factory=list)

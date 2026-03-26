@@ -56,9 +56,6 @@ def _matches(account: Account, criteria: FilterCriteria) -> bool:
     if criteria.has_marketable_items is not None:
         if criteria.has_marketable_items != (account.marketable_items_count > 0):
             return False
-    if criteria.has_tradable_items is not None:
-        if criteria.has_tradable_items != (account.tradable_items_count > 0):
-            return False
     if criteria.items_count_total is not None:
         if not _check_range(account.items_count_total, criteria.items_count_total):
             return False

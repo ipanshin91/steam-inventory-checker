@@ -66,7 +66,6 @@ def print_account_card(console: Console, account: Account) -> None:
     items_line = (
         f'items: {account.items_count_total} total'
         f'  |  {account.marketable_items_count} marketable'
-        f'  |  {account.tradable_items_count} tradable'
     )
     if account.total_inventory_value is not None:
         currency = next(
@@ -93,12 +92,10 @@ def print_account_card(console: Console, account: Account) -> None:
         lines.append('')
         lines.append('[bold]Items:[/bold]')
         for item in account.items:
-            t_flag = '[green]T[/green]' if item.tradable else '[dim]t[/dim]'
-            m_flag = '[green]M[/green]' if item.marketable else '[dim]m[/dim]'
             price_str = ''
             if item.price is not None:
                 price_str = f'  [yellow]{item.price:.2f} {item.currency or ""}[/yellow]'
-            lines.append(f'  {item.display_name}  x{item.quantity}  {t_flag}{m_flag}{price_str}')
+            lines.append(f'  {item.display_name}  x{item.quantity}{price_str}')
 
     console.print(Panel('\n'.join(lines), title='Account', border_style='dim'))
 
@@ -109,16 +106,12 @@ def print_find_results(console: Console, results: list[tuple[Account, Item]]) ->
     table.add_column('Account', style='cyan', no_wrap=True)
     table.add_column('Item')
     table.add_column('Qty', justify='right')
-    table.add_column('T')
-    table.add_column('M')
 
     for account, item in results:
         table.add_row(
             account.vanity_name,
             item.display_name,
             str(item.quantity),
-            '[green]T[/green]' if item.tradable else '[dim]-[/dim]',
-            '[green]M[/green]' if item.marketable else '[dim]-[/dim]',
         )
 
     console.print(table)

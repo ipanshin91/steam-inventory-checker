@@ -18,7 +18,7 @@ _HELP_TEXT = """\
   show <vanity>               Show account details
 
 [bold]Search and filter[/bold] [dim](offline, no network):[/dim]
-  find <query>                Find item by name (partial match)
+  find <query>                Find marketable item by name (partial match)
   filter <expr>               Filter accounts
   sort <field> [asc|desc]     Sort accounts
 

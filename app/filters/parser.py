@@ -24,7 +24,6 @@ _ENUM_FIELDS: dict[str, type] = {
 _BOOL_FIELDS: frozenset[str] = frozenset({
     'has_items',
     'has_marketable_items',
-    'has_tradable_items',
     'inventory_empty',
     'inventory_non_empty',
     'stale',

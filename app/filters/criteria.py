@@ -38,7 +38,6 @@ class FilterCriteria(BaseModel):
     sync_status: SyncStatus | None = None
     has_items: bool | None = None
     has_marketable_items: bool | None = None
-    has_tradable_items: bool | None = None
     items_count_total: RangeFilter | None = None
     items_count_distinct: RangeFilter | None = None
     last_successful_sync_at: DateFilter | None = None

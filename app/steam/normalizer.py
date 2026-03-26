@@ -16,11 +16,12 @@ def normalize(inv: InventoryData) -> list[Item]:
     items: list[Item] = []
     for classid, qty in qty_map.items():
         desc = desc_map.get(classid, {})
+        if not bool(desc.get('marketable', 0)):
+            continue
         items.append(Item(
             display_name=desc.get('name', classid),
             market_hash_name=desc.get('market_hash_name', classid),
             quantity=qty,
-            tradable=bool(desc.get('tradable', 0)),
             marketable=bool(desc.get('marketable', 0)),
             commodity=bool(desc.get('commodity', 0)),
             type=desc.get('type') or None,
@@ -31,13 +32,12 @@ def normalize(inv: InventoryData) -> list[Item]:
     return items
 
 
-def count_items(items: list[Item]) -> tuple[int, int, int, int]:
-    """Return (total_quantity, distinct_types, marketable_types, tradable_types)."""
+def count_items(items: list[Item]) -> tuple[int, int, int]:
+    """Return (total_quantity, distinct_types, marketable_types)."""
     total = sum(item.quantity for item in items)
     distinct = len(items)
     marketable = sum(1 for item in items if item.marketable)
-    tradable = sum(1 for item in items if item.tradable)
-    return total, distinct, marketable, tradable
+    return total, distinct, marketable
 
 
 def _extract_tags(raw_tags: list[dict]) -> list[dict[str, str]]:
