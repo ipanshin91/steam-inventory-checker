@@ -6,6 +6,7 @@ import logging
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
+from rich.table import Table
 
 from app.core.context import AppContext
 from app.core.models import InventoryVisibilityStatus, SyncErrorCategory, SyncStatus
@@ -56,7 +57,7 @@ async def _sync_one(ctx: AppContext, console: Console, args: list[str]) -> None:
         console.print(f'[red]Sync error: {exc}[/red]')
         return
 
-    _print_one_result(console, result)
+    _print_results_table(console, [result])
 
 
 async def _sync_all(ctx: AppContext, console: Console) -> None:
@@ -156,8 +157,8 @@ async def cmd_reprice(ctx: AppContext, console: Console, args: list[str]) -> Non
                 fresh = 0
                 item_errors: dict[str, str] = {}
                 try:
-                    fresh, item_errors = await price_fetcher.enrich_items(acc.items, proxy_url)
-                    ctx.proxy_manager.release(entry, success=True)
+                    fresh, item_errors, was_rate_limited = await price_fetcher.enrich_items(acc.items, proxy_url)
+                    ctx.proxy_manager.release(entry, success=not was_rate_limited, rate_limited=was_rate_limited)
                 except Exception as exc:
                     ctx.proxy_manager.release(entry, success=False)
                     item_errors = {'_fetch': str(exc)}
@@ -183,8 +184,27 @@ async def cmd_reprice(ctx: AppContext, console: Console, args: list[str]) -> Non
     total_fresh = sum(r[1] for r in results)
     total_failed = sum(r[3] != '' for r in results)
 
-    from rich.table import Table
+    _print_reprice_table(console, results)
 
+    price_color = 'green' if total_failed == 0 else ('yellow' if total_fresh > 0 else 'red')
+    console.print(
+        f'Reprice complete — '
+        f'[{price_color}]updated: {total_fresh}[/{price_color}]'
+        f'  [dim]failed: {total_failed} accounts[/dim]'
+    )
+
+
+def _status_markup(status: SyncStatus) -> str:
+    if status == SyncStatus.success:
+        return '[green]OK[/green]'
+    if status == SyncStatus.partial_success:
+        return '[yellow]PARTIAL[/yellow]'
+    return '[red]FAIL[/red]'
+
+
+def _print_reprice_table(
+    console: Console, results: list[tuple[str, int, int, str]]
+) -> None:
     table = Table(show_header=True, header_style='bold', box=None)
     table.add_column('Vanity', style='cyan', no_wrap=True)
     table.add_column('Priced', justify='right')
@@ -204,38 +224,41 @@ async def cmd_reprice(ctx: AppContext, console: Console, args: list[str]) -> Non
 
     console.print(table)
 
-    price_color = 'green' if total_failed == 0 else ('yellow' if total_fresh > 0 else 'red')
-    console.print(
-        f'Reprice complete — '
-        f'[{price_color}]updated: {total_fresh}[/{price_color}]'
-        f'  [dim]failed: {total_failed} accounts[/dim]'
-    )
 
+def _print_results_table(console: Console, results: list[SyncResult]) -> None:
+    table = Table(show_header=True, header_style='bold', box=None)
+    table.add_column('Vanity', style='cyan', no_wrap=True)
+    table.add_column('Duration', justify='right')
+    table.add_column('Items', justify='right')
+    table.add_column('Prices', justify='right')
+    table.add_column('Status')
+    table.add_column('Error', style='dim red')
 
-def _print_one_result(console: Console, result: SyncResult) -> None:
-    if result.status == SyncStatus.success:
-        icon = '[green]OK[/green]'
-    elif result.status == SyncStatus.partial_success:
-        icon = '[yellow]PARTIAL[/yellow]'
-    else:
-        icon = '[red]FAIL[/red]'
-
-    line = (
-        f'{icon}  [cyan]{result.vanity_name}[/cyan]'
-        f'  {_fmt_duration(result.duration_ms)}'
-        f'  items: {result.items_fetched}'
-    )
-    if result.error_category != SyncErrorCategory.none:
-        line += f'  [dim]{result.error_category.value}[/dim]'
-    if result.prices_fetched > 0 or result.prices_failed > 0:
-        if result.prices_failed == 0:
-            line += f'  [dim]prices: {result.prices_fetched}[/dim]'
+    for r in results:
+        total_m = r.prices_fetched + r.prices_failed
+        if total_m == 0:
+            prices_cell = '—'
+        elif r.prices_failed == 0:
+            prices_cell = f'[dim]{r.prices_fetched}/{total_m}[/dim]'
         else:
-            line += f'  [yellow]prices: {result.prices_fetched}/{result.prices_fetched + result.prices_failed}[/yellow]'
-    console.print(line)
+            prices_cell = f'[yellow]{r.prices_fetched}/{total_m}[/yellow]'
 
-    if result.error_message:
-        console.print(f'  [dim red]{result.error_message}[/dim red]')
+        error_cell = ''
+        if r.error_category != SyncErrorCategory.none:
+            error_cell = r.error_category.value
+        if r.error_message:
+            error_cell = r.error_message if not error_cell else f'{error_cell}: {r.error_message}'
+
+        table.add_row(
+            r.vanity_name,
+            _fmt_duration(r.duration_ms),
+            str(r.items_fetched),
+            prices_cell,
+            _status_markup(r.status),
+            error_cell,
+        )
+
+    console.print(table)
 
 
 def _print_summary(console: Console, summary: SyncSummary) -> None:
@@ -264,8 +287,7 @@ def _print_summary(console: Console, summary: SyncSummary) -> None:
     console.print(Panel('\n'.join(lines), title='Sync complete', border_style=border))
 
     if summary.failed_results:
-        for r in summary.failed_results:
-            _print_one_result(console, r)
+        _print_results_table(console, summary.failed_results)
 
 
 def _fmt_duration(ms: int) -> str:

@@ -54,15 +54,16 @@ class PriceFetcher:
 
     async def enrich_items(
         self, items: list[Item], proxy: str | None = None
-    ) -> tuple[int, dict[str, str]]:
+    ) -> tuple[int, dict[str, str], bool]:
         """Fetch prices sequentially.
 
-        Returns (fresh_count, errors) where fresh_count is the number of items
-        that received a new price in this call, and errors maps market_hash_name
-        to a failure reason for items that could not be priced.
+        Returns (fresh_count, errors, rate_limited) where fresh_count is the number
+        of items that received a new price, errors maps market_hash_name to a failure
+        reason, and rate_limited indicates whether any request was rate limited.
         """
         fresh = 0
         errors: dict[str, str] = {}
+        rate_limited = False
         first = True
         for item in items:
             if not item.marketable:
@@ -75,7 +76,9 @@ class PriceFetcher:
                 fresh += 1
             elif err:
                 errors[item.market_hash_name] = err
-        return fresh, errors
+                if err == 'rate_limited':
+                    rate_limited = True
+        return fresh, errors, rate_limited
 
     async def _enrich_one(self, item: Item, proxy: str | None) -> tuple[bool, str]:
         """Update item price in-place.

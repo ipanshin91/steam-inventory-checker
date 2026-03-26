@@ -178,7 +178,10 @@ class AccountSyncWorker:
                 'Sync error for %s: %s (%s) — %s',
                 acc.vanity_name, type(exc).__name__, error_category.value, error_message,
             )
-            self._proxy_manager.release(entry, success=False, latency_ms=_elapsed_ms(start))
+            is_rate_limited = isinstance(exc, RateLimitError)
+            self._proxy_manager.release(
+                entry, success=False, rate_limited=is_rate_limited, latency_ms=_elapsed_ms(start)
+            )
             return SyncResult(
                 vanity_name=acc.vanity_name,
                 status=acc.sync_status,

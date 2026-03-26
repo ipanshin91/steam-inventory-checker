@@ -110,13 +110,18 @@ class ProxyManager:
         entry: ProxyEntry | DirectEntry,
         *,
         success: bool,
+        rate_limited: bool = False,
         latency_ms: float = 0.0,
     ) -> None:
         """Update stats and circuit state after a request completes."""
         if isinstance(entry, DirectEntry):
             return
         entry.active_connections = max(0, entry.active_connections - 1)
-        if success:
+        if rate_limited:
+            entry.circuit.trip()
+            entry.stats.record_failure()
+            logger.warning('Proxy %s rate limited — circuit opened for %.0fs', entry.url, entry.circuit._cooldown_secs)
+        elif success:
             entry.circuit.record_success()
             entry.stats.record_success(latency_ms)
         else:

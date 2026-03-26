@@ -13,7 +13,7 @@ class CircuitState(StrEnum):
 class CircuitBreaker:
     """Per-proxy circuit breaker: CLOSED → OPEN after failures → HALF_OPEN after cooldown → CLOSED on success."""
 
-    def __init__(self, failure_threshold: int = 5, cooldown_secs: float = 60.0) -> None:
+    def __init__(self, failure_threshold: int = 5, cooldown_secs: float = 300.0) -> None:
         self._state = CircuitState.CLOSED
         self._failure_threshold = failure_threshold
         self._cooldown_secs = cooldown_secs
@@ -43,3 +43,9 @@ class CircuitBreaker:
         if self._consecutive_failures >= self._failure_threshold:
             self._state = CircuitState.OPEN
             self._opened_at = time.monotonic()
+
+    def trip(self) -> None:
+        """Immediately open the circuit regardless of failure threshold (e.g. on rate limit)."""
+        self._consecutive_failures = self._failure_threshold
+        self._state = CircuitState.OPEN
+        self._opened_at = time.monotonic()
