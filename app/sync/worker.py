@@ -115,10 +115,30 @@ class AccountSyncWorker:
             )
 
             acc.inventory_visibility_status = inv.visibility
+            prices_fetched = 0
+            prices_failed = 0
             if inv.visibility == InventoryVisibilityStatus.public:
                 items = normalize(inv)
+
+                existing_prices = {
+                    item.market_hash_name: (item.price, item.price_updated_at, item.currency)
+                    for item in acc.items
+                    if item.price is not None
+                }
+
                 if self._price_fetcher is not None and items:
                     await self._price_fetcher.enrich_items(items, proxy_url)
+
+                for item in items:
+                    if item.price is None and item.market_hash_name in existing_prices:
+                        item.price, item.price_updated_at, item.currency = (
+                            existing_prices[item.market_hash_name]
+                        )
+
+                marketable_items = [i for i in items if i.marketable]
+                prices_fetched = sum(1 for i in marketable_items if i.price is not None)
+                prices_failed = len(marketable_items) - prices_fetched
+
                 total, distinct, marketable, tradable = count_items(items)
                 acc.items = items
                 acc.items_count_total = total
@@ -143,6 +163,8 @@ class AccountSyncWorker:
                 status=acc.sync_status,
                 error_category=acc.sync_error_category,
                 items_fetched=acc.items_count_total,
+                prices_fetched=prices_fetched,
+                prices_failed=prices_failed,
                 duration_ms=_elapsed_ms(start),
                 updated_account=acc,
             )

@@ -26,6 +26,7 @@ _HELP_TEXT = """\
   sync one <vanity>           Sync one account
   sync all                    Sync all accounts
   sync filter <expr>          Sync accounts matching filter
+  reprice [one <vanity>]      Re-fetch prices without re-syncing inventory
 
 [bold]Database:[/bold]
   save                        Force save DB to disk

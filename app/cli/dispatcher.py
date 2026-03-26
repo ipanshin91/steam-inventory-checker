@@ -10,7 +10,7 @@ from app.cli.commands.account import cmd_add, cmd_import, cmd_list, cmd_show
 from app.cli.commands.db_cmds import cmd_reload, cmd_save
 from app.cli.commands.meta import cmd_exit, cmd_help, cmd_stats
 from app.cli.commands.search import cmd_filter, cmd_find, cmd_sort
-from app.cli.commands.sync_cmds import cmd_sync
+from app.cli.commands.sync_cmds import cmd_reprice, cmd_sync
 from app.core.context import AppContext
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,8 @@ class CommandDispatcher:
             'find':   lambda a: cmd_find(ctx, console, a),
             'filter': lambda a: cmd_filter(ctx, console, a),
             'sort':   lambda a: cmd_sort(ctx, console, a),
-            'sync':   lambda a: cmd_sync(ctx, console, a),
+            'sync':    lambda a: cmd_sync(ctx, console, a),
+            'reprice': lambda a: cmd_reprice(ctx, console, a),
             'save':   lambda a: cmd_save(ctx, console, a),
             'reload': lambda a: cmd_reload(ctx, console, a),
             'stats':  lambda a: cmd_stats(ctx, console, a),

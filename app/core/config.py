@@ -27,8 +27,7 @@ class AppConfig(BaseModel):
     retry_count: int = 3
     backoff_base: float = 1.0
     backoff_jitter: float = 0.5
-    proxy_request_delay: float = 1.0
-    no_proxy_delay: float = 1.5
+    request_delay: float = 5
     autosave_interval: int = 100
 
     stale_threshold_hours: int = 48
@@ -69,8 +68,7 @@ def load_config(path: Path | None = None) -> AppConfig:
         retry_count=perf_sec.get('retry_count', 3),
         backoff_base=perf_sec.get('backoff_base', 1.0),
         backoff_jitter=perf_sec.get('backoff_jitter', 0.5),
-        proxy_request_delay=perf_sec.get('proxy_request_delay', 1.0),
-        no_proxy_delay=perf_sec.get('no_proxy_delay', 1.5),
+        request_delay=perf_sec.get('request_delay', 5),
         autosave_interval=perf_sec.get('autosave_interval', 100),
 
         stale_threshold_hours=thr_sec.get('stale_threshold_hours', 48),

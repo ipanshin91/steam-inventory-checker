@@ -13,6 +13,8 @@ class SyncResult(BaseModel):
     error_category: SyncErrorCategory
     error_message: str = ''
     items_fetched: int = 0
+    prices_fetched: int = 0
+    prices_failed: int = 0
     duration_ms: int
     updated_account: Account
 
@@ -28,3 +30,5 @@ class SyncSummary(BaseModel):
     duration_ms: int
     errors_by_category: dict[SyncErrorCategory, int]
     failed_results: list[SyncResult] = []
+    total_prices_fetched: int = 0
+    total_prices_failed: int = 0

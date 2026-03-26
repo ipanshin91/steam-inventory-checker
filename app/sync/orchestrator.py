@@ -103,6 +103,8 @@ def _build_summary(
     success = 0
     partial = 0
     failed = 0
+    prices_fetched = 0
+    prices_failed = 0
     errors: dict[SyncErrorCategory, int] = {}
     failed_results: list[SyncResult] = []
 
@@ -124,6 +126,8 @@ def _build_summary(
             failed_results.append(r)
         if r.error_category != SyncErrorCategory.none:
             errors[r.error_category] = errors.get(r.error_category, 0) + 1
+        prices_fetched += r.prices_fetched
+        prices_failed += r.prices_failed
 
     return SyncSummary(
         total=len(raw_results),
@@ -134,4 +138,6 @@ def _build_summary(
         duration_ms=duration_ms,
         errors_by_category=errors,
         failed_results=failed_results,
+        total_prices_fetched=prices_fetched,
+        total_prices_failed=prices_failed,
     )

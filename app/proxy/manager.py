@@ -28,11 +28,10 @@ class MaxRetriesExceeded(Exception):
 
 @dataclass
 class ProxyEntry:
-    """Single proxy with its own semaphore, circuit breaker, stats, and per-request delay."""
+    """Single proxy with its own circuit breaker, stats, and per-request delay."""
 
     url: str
     delay: float
-    semaphore: asyncio.Semaphore
     circuit: CircuitBreaker
     stats: ProxyStats
     active_connections: int = 0
@@ -52,17 +51,17 @@ class ProxyManager:
 
     def __init__(self, config: AppConfig) -> None:
         self._lock = asyncio.Lock()
+        self._proxy_concurrency = config.proxy_concurrency
         if not config.proxies:
             self._direct_mode = True
-            self._direct = DirectEntry(delay=config.no_proxy_delay)
+            self._direct = DirectEntry(delay=config.request_delay)
             self._pool: list[ProxyEntry] = []
         else:
             self._direct_mode = False
             self._pool = [
                 ProxyEntry(
                     url=url,
-                    delay=config.proxy_request_delay,
-                    semaphore=asyncio.Semaphore(config.proxy_concurrency),
+                    delay=config.request_delay,
                     circuit=CircuitBreaker(),
                     stats=ProxyStats(),
                 )
@@ -81,21 +80,30 @@ class ProxyManager:
         return await self._acquire_from_pool()
 
     async def _acquire_from_pool(self) -> ProxyEntry:
-        async with self._lock:
-            candidates = [
-                p for p in self._pool
-                if p.is_alive and p.circuit.state == CircuitState.CLOSED
-            ]
-            if not candidates:
-                candidates = [
+        while True:
+            async with self._lock:
+                healthy = [
                     p for p in self._pool
-                    if p.is_alive and p.circuit.state == CircuitState.HALF_OPEN
+                    if p.is_alive and p.circuit.state == CircuitState.CLOSED
                 ]
-            if not candidates:
-                raise NoHealthyProxyError('No healthy proxies available in the pool')
-            proxy = min(candidates, key=lambda p: p.active_connections)
-            proxy.active_connections += 1
-        return proxy
+                if not healthy:
+                    healthy = [
+                        p for p in self._pool
+                        if p.is_alive and p.circuit.state == CircuitState.HALF_OPEN
+                    ]
+                if not healthy:
+                    raise NoHealthyProxyError('No healthy proxies available in the pool')
+
+                available = [
+                    p for p in healthy
+                    if p.active_connections < self._proxy_concurrency
+                ]
+                if available:
+                    proxy = min(available, key=lambda p: p.active_connections)
+                    proxy.active_connections += 1
+                    return proxy
+
+            await asyncio.sleep(0.05)
 
     def release(
         self,
@@ -142,16 +150,20 @@ async def with_retry(
     backoff_base: float,
     jitter: float,
 ) -> T:
-    """Execute coro_factory with exponential backoff retry on transient errors."""
+    """Execute coro_factory with exponential backoff retry on transient network errors.
+
+    RateLimitError is not retried — retrying the same IP makes rate limits worse.
+    """
     last_exc: Exception | None = None
     for attempt in range(retries):
         try:
             return await coro_factory()
-        except (RateLimitError, aiohttp.ClientError) as exc:
+        except aiohttp.ClientError as exc:
             last_exc = exc
             delay = backoff_base * (2 ** attempt) + random.uniform(0, jitter)
             logger.warning(
-                f'Retry {attempt + 1}/{retries} in {delay:.1f}s ({type(exc).__name__})'
+                'Retry %d/%d in %.1fs (%s)',
+                attempt + 1, retries, delay, type(exc).__name__,
             )
             await asyncio.sleep(delay)
     raise MaxRetriesExceeded(f'Max retries ({retries}) exceeded') from last_exc

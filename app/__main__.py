@@ -34,7 +34,7 @@ def _print_banner(ctx: AppContext) -> None:
     if ctx.proxy_manager.is_direct_mode:
         console.print(
             f'[yellow][WARNING] No proxies configured. '
-            f'Using direct connection with {ctx.config.no_proxy_delay}s delay per request.[/yellow]'
+            f'Using direct connection with {ctx.config.request_delay}s delay per request.[/yellow]'
         )
     else:
         console.print(

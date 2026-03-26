@@ -12,14 +12,13 @@ list = [
 ]
 
 [performance]
-proxy_concurrency   = 1
-request_timeout     = 10.0
-retry_count         = 3
-backoff_base        = 1.0
-backoff_jitter      = 0.5
-proxy_request_delay = 1.0
-no_proxy_delay      = 1.5
-autosave_interval   = 100
+proxy_concurrency = 1
+request_timeout   = 10.0
+retry_count       = 3
+backoff_base      = 1.0
+backoff_jitter    = 0.5
+request_delay     = 5.0
+autosave_interval = 100
 
 [thresholds]
 stale_threshold_hours = 48
